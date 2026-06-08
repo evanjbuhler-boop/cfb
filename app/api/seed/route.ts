@@ -134,116 +134,91 @@ function generateRecruit(nationalRank: number, enrollYear: number) {
   };
 }
 
-export async function GET() {
-  try {
-    await prisma.newsItem.deleteMany();
-    await prisma.spotlightPlayer.deleteMany();
-    await prisma.playerDevEvent.deleteMany();
-    await prisma.playerAward.deleteMany();
-    await prisma.playerGameStat.deleteMany();
-    await prisma.playerSeasonStat.deleteMany();
-    await prisma.playerTrait.deleteMany();
-    await prisma.gameDrive.deleteMany();
-    await prisma.game.deleteMany();
-    await prisma.teamSeason.deleteMany();
-    await prisma.teamRanking.deleteMany();
-    await prisma.coachSeason.deleteMany();
-    await prisma.coachHistory.deleteMany();
-    await prisma.coach.deleteMany();
-    await prisma.player.deleteMany();
-    await prisma.recruitTimeline.deleteMany();
-    await prisma.recruitVisit.deleteMany();
-    await prisma.recruitingInterest.deleteMany();
-    await prisma.scholarshipOffer.deleteMany();
-    await prisma.recruit.deleteMany();
-    await prisma.userDynasty.deleteMany();
-    await prisma.season.deleteMany();
-    await prisma.team.deleteMany();
-    await prisma.conference.deleteMany();
-  } catch { /* ignore */ }
+function uid() { return crypto.randomUUID(); }
 
-  const YEARS = ["FR","FR","SO","SO","JR","JR","SR","SR","GR"];
-  const SCHEMES = ["PRO_STYLE","SPREAD","AIR_RAID","RPO","POWER_RUN"];
-  const DEF_SCHEMES = ["FOUR_THREE","THREE_FOUR","NICKEL","COVER_THREE"];
-  const PERSONALITIES = ["DISCIPLINARIAN","PLAYER_FRIENDLY","TACTICIAN","RECRUITER","DEVELOPER","MOTIVATOR"];
-  const ROSTER_DEF: [number, string][] = [[2,"QB"],[3,"RB"],[5,"WR"],[2,"TE"],[5,"OL"],[4,"DL"],[4,"LB"],[4,"CB"],[3,"S"]];
+export async function GET() {
+  // Wipe in dependency order (ignore errors if tables empty)
+  const deletes = [
+    "newsItem","spotlightPlayer","playerDevEvent","playerAward",
+    "playerGameStat","playerSeasonStat","playerTrait","gameDrive","game",
+    "teamSeason","teamRanking","coachSeason","coachHistory","coach","player",
+    "recruitTimeline","recruitVisit","recruitingInterest","scholarshipOffer",
+    "recruit","userDynasty","season","team","conference",
+  ] as const;
+  for (const model of deletes) {
+    try { await (prisma[model] as { deleteMany: () => Promise<unknown> }).deleteMany(); } catch { /* ignore */ }
+  }
 
   // Conferences (bulk)
   await prisma.conference.createMany({ data: CONFERENCES });
   const confs = await prisma.conference.findMany();
   const confMap = new Map(confs.map(c => [c.abbreviation, c.id]));
 
-  // Teams (bulk)
-  await prisma.team.createMany({
-    data: TEAMS_DATA.map(t => ({
-      name: t.name, abbreviation: t.abbr, mascot: t.mascot,
-      city: t.city, state: t.state, conferenceId: confMap.get(t.conf)!,
-      prestige: t.prestige, facilityRating: t.fac, academicRating: t.acad,
-      recruitingBudget: t.budget, stadiumCapacity: t.stadium,
-      primaryColor: t.primary, secondaryColor: t.secondary,
-    })),
-  });
-  const teams = await prisma.team.findMany();
-  const teamMap = new Map(teams.map(t => [t.abbreviation, t]));
+  // Build all team/player/coach/trait data in memory first, then bulk insert
+  const teamRows = TEAMS_DATA.map(t => ({
+    id: uid(),
+    name: t.name, abbreviation: t.abbr, mascot: t.mascot,
+    city: t.city, state: t.state, conferenceId: confMap.get(t.conf)!,
+    prestige: t.prestige, facilityRating: t.fac, academicRating: t.acad,
+    recruitingBudget: t.budget, stadiumCapacity: t.stadium,
+    primaryColor: t.primary, secondaryColor: t.secondary,
+    createdAt: new Date(),
+  }));
+  await prisma.team.createMany({ data: teamRows });
+  const teamIdMap = new Map(teamRows.map((t, i) => [TEAMS_DATA[i].abbr, t.id]));
 
-  // Players + traits per team (bulk per team)
+  const allPlayers: Record<string, unknown>[] = [];
   const allTraits: { playerId: string; trait: string }[] = [];
+  const allCoaches: Record<string, unknown>[] = [];
+  const SCHEMES = ["PRO_STYLE","SPREAD","AIR_RAID","RPO","POWER_RUN"];
+  const DEF_SCHEMES = ["FOUR_THREE","THREE_FOUR","NICKEL","COVER_THREE"];
+  const PERSONALITIES = ["DISCIPLINARIAN","PLAYER_FRIENDLY","TACTICIAN","RECRUITER","DEVELOPER","MOTIVATOR"];
+  const ROSTER_DEF: [number, string][] = [[2,"QB"],[3,"RB"],[5,"WR"],[2,"TE"],[5,"OL"],[4,"DL"],[4,"LB"],[4,"CB"],[3,"S"]];
+  const YEARS = ["FR","FR","SO","SO","JR","JR","SR","SR","GR"];
+
   for (const t of TEAMS_DATA) {
-    const team = teamMap.get(t.abbr);
-    if (!team) continue;
-
+    const teamId = teamIdMap.get(t.abbr)!;
     const positions: string[] = [];
-    ROSTER_DEF.forEach(([n, p]) => { for (let i=0;i<n;i++) positions.push(p); });
+    ROSTER_DEF.forEach(([n, p]) => { for (let i = 0; i < n; i++) positions.push(p); });
 
-    const playerRows = positions.map(pos => {
-      const pData = generatePlayer(pos, YEARS[rng(0,YEARS.length-1)], t.prestige);
-      const { trait: _t, ...playerData } = pData;
-      return { ...playerData, teamId: team.id, _trait: _t };
-    });
+    for (const pos of positions) {
+      const pData = generatePlayer(pos, YEARS[rng(0, YEARS.length - 1)], t.prestige);
+      const { trait, ...playerData } = pData;
+      const playerId = uid();
+      allPlayers.push({ id: playerId, ...playerData, teamId, createdAt: new Date(), updatedAt: new Date() });
+      if (trait) allTraits.push({ playerId, trait });
+    }
 
-    await prisma.player.createMany({
-      data: playerRows.map(({ _trait: _unused, ...p }) => p),
-    });
-
-    // Fetch back the players we just created to get their IDs for traits
-    const created = await prisma.player.findMany({
-      where: { teamId: team.id },
-      orderBy: { createdAt: "asc" },
-    });
-    created.forEach((p, i) => {
-      const trait = playerRows[i]?._trait;
-      if (trait) allTraits.push({ playerId: p.id, trait });
-    });
-
-    // Head coach
     const cn = randName();
-    await prisma.coach.create({
-      data: {
-        teamId: team.id, firstName: cn.first, lastName: cn.last,
-        role: "HEAD_COACH", age: rng(38,62),
-        offenseRating: clamp(t.prestige*8+rng(-10,10),50,99),
-        defenseRating: clamp(t.prestige*8+rng(-10,10),50,99),
-        recruitingRating: clamp(t.prestige*9+rng(-10,10),50,99),
-        playerDev: clamp(t.prestige*8+rng(-10,10),50,99),
-        gameManagement: clamp(t.prestige*8+rng(-10,10),50,99),
-        motivation: clamp(t.prestige*8+rng(-10,10),50,99),
-        discipline: clamp(rng(50,90),40,99),
-        offScheme: SCHEMES[rng(0,SCHEMES.length-1)],
-        defScheme: DEF_SCHEMES[rng(0,DEF_SCHEMES.length-1)],
-        careerWins: rng(0,120), reputation: t.prestige*9+rng(-5,5),
-        contractYears: rng(2,6), salary: t.prestige*800000+rng(-200000,200000),
-        personality: PERSONALITIES[rng(0,PERSONALITIES.length-1)],
-      },
+    allCoaches.push({
+      id: uid(), teamId, firstName: cn.first, lastName: cn.last,
+      role: "HEAD_COACH", age: rng(38, 62),
+      offenseRating: clamp(t.prestige * 8 + rng(-10, 10), 50, 99),
+      defenseRating: clamp(t.prestige * 8 + rng(-10, 10), 50, 99),
+      recruitingRating: clamp(t.prestige * 9 + rng(-10, 10), 50, 99),
+      playerDev: clamp(t.prestige * 8 + rng(-10, 10), 50, 99),
+      gameManagement: clamp(t.prestige * 8 + rng(-10, 10), 50, 99),
+      motivation: clamp(t.prestige * 8 + rng(-10, 10), 50, 99),
+      discipline: clamp(rng(50, 90), 40, 99),
+      offScheme: SCHEMES[rng(0, SCHEMES.length - 1)],
+      defScheme: DEF_SCHEMES[rng(0, DEF_SCHEMES.length - 1)],
+      careerWins: rng(0, 120), careerLosses: rng(0, 80),
+      reputation: t.prestige * 9 + rng(-5, 5),
+      contractYears: rng(2, 6), salary: t.prestige * 800000 + rng(-200000, 200000),
+      personality: PERSONALITIES[rng(0, PERSONALITIES.length - 1)],
+      createdAt: new Date(),
     });
   }
 
-  // Bulk traits
+  // Single bulk insert for each type — no round-trips
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await prisma.player.createMany({ data: allPlayers as any });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await prisma.coach.createMany({ data: allCoaches as any });
   if (allTraits.length) await prisma.playerTrait.createMany({ data: allTraits });
-
-  // Recruiting class (bulk in one shot)
   await prisma.recruit.createMany({
     data: Array.from({ length: 600 }, (_, i) => generateRecruit(i + 1, 2026)),
   });
 
-  return NextResponse.json({ success: true, teams: TEAMS_DATA.length, recruits: 600 });
+  return NextResponse.json({ success: true, teams: TEAMS_DATA.length, players: allPlayers.length, recruits: 600 });
 }
