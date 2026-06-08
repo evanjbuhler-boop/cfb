@@ -39,7 +39,7 @@ export default function LandingPage() {
   async function initWorld() {
     setSeeding(true);
     try {
-      await fetch("/api/seed", { method: "POST" });
+      await fetch("/api/seed");
       const r = await fetch("/api/teams");
       const d = await r.json();
       if (Array.isArray(d)) setTeams(d);
