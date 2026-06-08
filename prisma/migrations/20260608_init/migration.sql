@@ -1,14 +1,21 @@
+Loaded Prisma config from prisma.config.ts.
+
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateTable
 CREATE TABLE "Conference" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "abbreviation" TEXT NOT NULL,
-    "tier" TEXT NOT NULL
+    "tier" TEXT NOT NULL,
+
+    CONSTRAINT "Conference_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Team" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "abbreviation" TEXT NOT NULL,
     "mascot" TEXT NOT NULL,
@@ -23,13 +30,14 @@ CREATE TABLE "Team" (
     "primaryColor" TEXT NOT NULL,
     "secondaryColor" TEXT NOT NULL,
     "rivalTeamId" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Team_conferenceId_fkey" FOREIGN KEY ("conferenceId") REFERENCES "Conference" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Team_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Player" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "teamId" TEXT,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
@@ -89,23 +97,25 @@ CREATE TABLE "Player" (
     "declaringDraft" BOOLEAN NOT NULL DEFAULT false,
     "injured" BOOLEAN NOT NULL DEFAULT false,
     "injuryWeeks" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "Player_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Player_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "PlayerTrait" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "playerId" TEXT NOT NULL,
     "trait" TEXT NOT NULL,
     "addedBy" TEXT NOT NULL DEFAULT 'SYSTEM',
-    CONSTRAINT "PlayerTrait_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+
+    CONSTRAINT "PlayerTrait_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "PlayerDevEvent" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "playerId" TEXT NOT NULL,
     "seasonId" TEXT NOT NULL,
     "week" INTEGER NOT NULL,
@@ -114,13 +124,14 @@ CREATE TABLE "PlayerDevEvent" (
     "ratingBefore" INTEGER NOT NULL,
     "ratingAfter" INTEGER NOT NULL,
     "attribute" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "PlayerDevEvent_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PlayerDevEvent_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Recruit" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
     "position" TEXT NOT NULL,
@@ -132,7 +143,7 @@ CREATE TABLE "Recruit" (
     "nationalRank" INTEGER NOT NULL,
     "positionRank" INTEGER NOT NULL,
     "stateRank" INTEGER NOT NULL,
-    "gpa" REAL NOT NULL,
+    "gpa" DOUBLE PRECISION NOT NULL,
     "academicRating" INTEGER NOT NULL,
     "speedRating" INTEGER NOT NULL,
     "athleticismScore" INTEGER NOT NULL,
@@ -154,24 +165,26 @@ CREATE TABLE "Recruit" (
     "committedTeamName" TEXT,
     "earlyEnrollee" BOOLEAN NOT NULL DEFAULT false,
     "enrollYear" INTEGER NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Recruit_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "ScholarshipOffer" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "recruitId" TEXT NOT NULL,
     "teamId" TEXT NOT NULL,
-    "offeredAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "offeredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "withdrawn" BOOLEAN NOT NULL DEFAULT false,
-    CONSTRAINT "ScholarshipOffer_recruitId_fkey" FOREIGN KEY ("recruitId") REFERENCES "Recruit" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "ScholarshipOffer_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "ScholarshipOffer_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "RecruitingInterest" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "recruitId" TEXT NOT NULL,
     "teamId" TEXT NOT NULL,
     "interestLevel" INTEGER NOT NULL DEFAULT 0,
@@ -180,39 +193,41 @@ CREATE TABLE "RecruitingInterest" (
     "hasVisited" BOOLEAN NOT NULL DEFAULT false,
     "visitType" TEXT,
     "visitImpact" INTEGER NOT NULL DEFAULT 0,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "RecruitingInterest_recruitId_fkey" FOREIGN KEY ("recruitId") REFERENCES "Recruit" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "RecruitingInterest_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RecruitingInterest_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "RecruitVisit" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "recruitId" TEXT NOT NULL,
     "teamId" TEXT NOT NULL,
     "visitType" TEXT NOT NULL,
-    "visitDate" DATETIME NOT NULL,
+    "visitDate" TIMESTAMP(3) NOT NULL,
     "impactScore" INTEGER NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "RecruitVisit_recruitId_fkey" FOREIGN KEY ("recruitId") REFERENCES "Recruit" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RecruitVisit_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "RecruitTimeline" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "recruitId" TEXT NOT NULL,
     "event" TEXT NOT NULL,
     "teamId" TEXT,
     "teamName" TEXT,
     "week" INTEGER NOT NULL,
     "season" INTEGER NOT NULL,
-    "occurredAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "RecruitTimeline_recruitId_fkey" FOREIGN KEY ("recruitId") REFERENCES "Recruit" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "occurredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RecruitTimeline_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Coach" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "teamId" TEXT,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
@@ -235,13 +250,14 @@ CREATE TABLE "Coach" (
     "salary" INTEGER NOT NULL,
     "personality" TEXT NOT NULL,
     "quote" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Coach_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Coach_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "CoachHistory" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "coachId" TEXT NOT NULL,
     "teamId" TEXT NOT NULL,
     "role" TEXT NOT NULL,
@@ -250,32 +266,34 @@ CREATE TABLE "CoachHistory" (
     "wins" INTEGER NOT NULL DEFAULT 0,
     "losses" INTEGER NOT NULL DEFAULT 0,
     "reason" TEXT,
-    CONSTRAINT "CoachHistory_coachId_fkey" FOREIGN KEY ("coachId") REFERENCES "Coach" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "CoachHistory_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "CoachHistory_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "CoachSeason" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "coachId" TEXT NOT NULL,
     "seasonId" TEXT NOT NULL,
     "wins" INTEGER NOT NULL DEFAULT 0,
     "losses" INTEGER NOT NULL DEFAULT 0,
-    CONSTRAINT "CoachSeason_coachId_fkey" FOREIGN KEY ("coachId") REFERENCES "Coach" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "CoachSeason_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "CoachSeason_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Season" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "year" INTEGER NOT NULL,
     "currentWeek" INTEGER NOT NULL DEFAULT 0,
-    "phase" TEXT NOT NULL DEFAULT 'PRESEASON'
+    "phase" TEXT NOT NULL DEFAULT 'PRESEASON',
+
+    CONSTRAINT "Season_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "TeamSeason" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "teamId" TEXT NOT NULL,
     "seasonId" TEXT NOT NULL,
     "wins" INTEGER NOT NULL DEFAULT 0,
@@ -286,13 +304,13 @@ CREATE TABLE "TeamSeason" (
     "cfpRank" INTEGER,
     "recruitingClassRank" INTEGER,
     "signingDayComplete" BOOLEAN NOT NULL DEFAULT false,
-    CONSTRAINT "TeamSeason_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "TeamSeason_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "TeamSeason_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Game" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "seasonId" TEXT NOT NULL,
     "homeTeamId" TEXT NOT NULL,
     "awayTeamId" TEXT NOT NULL,
@@ -309,15 +327,14 @@ CREATE TABLE "Game" (
     "headline" TEXT,
     "gameNarrative" TEXT,
     "mvpPlayerId" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Game_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Game_homeTeamId_fkey" FOREIGN KEY ("homeTeamId") REFERENCES "Team" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Game_awayTeamId_fkey" FOREIGN KEY ("awayTeamId") REFERENCES "Team" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Game_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "GameDrive" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "gameId" TEXT NOT NULL,
     "driveNumber" INTEGER NOT NULL,
     "offTeamId" TEXT NOT NULL,
@@ -331,12 +348,13 @@ CREATE TABLE "GameDrive" (
     "timeStart" INTEGER NOT NULL,
     "keyPlayerId" TEXT,
     "narrative" TEXT,
-    CONSTRAINT "GameDrive_gameId_fkey" FOREIGN KEY ("gameId") REFERENCES "Game" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+
+    CONSTRAINT "GameDrive_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "PlayerGameStat" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "gameId" TEXT NOT NULL,
     "playerId" TEXT NOT NULL,
     "teamId" TEXT NOT NULL,
@@ -345,7 +363,7 @@ CREATE TABLE "PlayerGameStat" (
     "passYards" INTEGER NOT NULL DEFAULT 0,
     "passTDs" INTEGER NOT NULL DEFAULT 0,
     "interceptions" INTEGER NOT NULL DEFAULT 0,
-    "qbRating" REAL NOT NULL DEFAULT 0,
+    "qbRating" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "sacked" INTEGER NOT NULL DEFAULT 0,
     "sackedYards" INTEGER NOT NULL DEFAULT 0,
     "rushAttempts" INTEGER NOT NULL DEFAULT 0,
@@ -363,8 +381,8 @@ CREATE TABLE "PlayerGameStat" (
     "longRec" INTEGER NOT NULL DEFAULT 0,
     "tackles" INTEGER NOT NULL DEFAULT 0,
     "soloTackles" INTEGER NOT NULL DEFAULT 0,
-    "tacklesForLoss" REAL NOT NULL DEFAULT 0,
-    "sacks" REAL NOT NULL DEFAULT 0,
+    "tacklesForLoss" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "sacks" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "forcedFumbles" INTEGER NOT NULL DEFAULT 0,
     "defInterceptions" INTEGER NOT NULL DEFAULT 0,
     "passBreakups" INTEGER NOT NULL DEFAULT 0,
@@ -377,13 +395,13 @@ CREATE TABLE "PlayerGameStat" (
     "fgAttempts" INTEGER NOT NULL DEFAULT 0,
     "playerOfGame" BOOLEAN NOT NULL DEFAULT false,
     "spotlightGame" BOOLEAN NOT NULL DEFAULT false,
-    CONSTRAINT "PlayerGameStat_gameId_fkey" FOREIGN KEY ("gameId") REFERENCES "Game" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "PlayerGameStat_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "PlayerGameStat_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "PlayerSeasonStat" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "playerId" TEXT NOT NULL,
     "seasonId" TEXT NOT NULL,
     "teamId" TEXT NOT NULL,
@@ -393,7 +411,7 @@ CREATE TABLE "PlayerSeasonStat" (
     "passYards" INTEGER NOT NULL DEFAULT 0,
     "passTDs" INTEGER NOT NULL DEFAULT 0,
     "interceptions" INTEGER NOT NULL DEFAULT 0,
-    "qbRating" REAL NOT NULL DEFAULT 0,
+    "qbRating" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "rushAttempts" INTEGER NOT NULL DEFAULT 0,
     "rushYards" INTEGER NOT NULL DEFAULT 0,
     "rushTDs" INTEGER NOT NULL DEFAULT 0,
@@ -402,52 +420,54 @@ CREATE TABLE "PlayerSeasonStat" (
     "recYards" INTEGER NOT NULL DEFAULT 0,
     "recTDs" INTEGER NOT NULL DEFAULT 0,
     "tackles" INTEGER NOT NULL DEFAULT 0,
-    "sacks" REAL NOT NULL DEFAULT 0,
+    "sacks" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "forcedFumbles" INTEGER NOT NULL DEFAULT 0,
     "defInterceptions" INTEGER NOT NULL DEFAULT 0,
     "passBreakups" INTEGER NOT NULL DEFAULT 0,
-    CONSTRAINT "PlayerSeasonStat_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "PlayerSeasonStat_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "PlayerSeasonStat_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "SpotlightPlayer" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "seasonId" TEXT NOT NULL,
     "playerId" TEXT NOT NULL,
     "teamId" TEXT NOT NULL,
     "narrative" TEXT,
     "assignedTrait" TEXT,
-    CONSTRAINT "SpotlightPlayer_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "SpotlightPlayer_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "SpotlightPlayer_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "TeamRanking" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "seasonId" TEXT NOT NULL,
     "teamId" TEXT NOT NULL,
     "week" INTEGER NOT NULL,
     "apRank" INTEGER,
     "cfpRank" INTEGER,
     "record" TEXT NOT NULL,
-    CONSTRAINT "TeamRanking_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "TeamRanking_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "PlayerAward" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "playerId" TEXT NOT NULL,
     "seasonId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "week" INTEGER,
     "gameId" TEXT,
-    CONSTRAINT "PlayerAward_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "PlayerAward_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "NewsItem" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "seasonId" TEXT NOT NULL,
     "teamId" TEXT,
     "week" INTEGER NOT NULL,
@@ -458,14 +478,14 @@ CREATE TABLE "NewsItem" (
     "gameId" TEXT,
     "isBreaking" BOOLEAN NOT NULL DEFAULT false,
     "isNational" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "NewsItem_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "NewsItem_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "NewsItem_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "UserDynasty" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "teamId" TEXT NOT NULL,
     "dynastyName" TEXT NOT NULL,
     "currentYear" INTEGER NOT NULL,
@@ -473,9 +493,10 @@ CREATE TABLE "UserDynasty" (
     "totalWins" INTEGER NOT NULL DEFAULT 0,
     "totalLosses" INTEGER NOT NULL DEFAULT 0,
     "titles" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "UserDynasty_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "UserDynasty_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -510,3 +531,100 @@ CREATE UNIQUE INDEX "TeamRanking_seasonId_teamId_week_key" ON "TeamRanking"("sea
 
 -- CreateIndex
 CREATE UNIQUE INDEX "UserDynasty_teamId_key" ON "UserDynasty"("teamId");
+
+-- AddForeignKey
+ALTER TABLE "Team" ADD CONSTRAINT "Team_conferenceId_fkey" FOREIGN KEY ("conferenceId") REFERENCES "Conference"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Player" ADD CONSTRAINT "Player_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PlayerTrait" ADD CONSTRAINT "PlayerTrait_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PlayerDevEvent" ADD CONSTRAINT "PlayerDevEvent_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ScholarshipOffer" ADD CONSTRAINT "ScholarshipOffer_recruitId_fkey" FOREIGN KEY ("recruitId") REFERENCES "Recruit"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ScholarshipOffer" ADD CONSTRAINT "ScholarshipOffer_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RecruitingInterest" ADD CONSTRAINT "RecruitingInterest_recruitId_fkey" FOREIGN KEY ("recruitId") REFERENCES "Recruit"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RecruitingInterest" ADD CONSTRAINT "RecruitingInterest_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RecruitVisit" ADD CONSTRAINT "RecruitVisit_recruitId_fkey" FOREIGN KEY ("recruitId") REFERENCES "Recruit"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RecruitTimeline" ADD CONSTRAINT "RecruitTimeline_recruitId_fkey" FOREIGN KEY ("recruitId") REFERENCES "Recruit"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Coach" ADD CONSTRAINT "Coach_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CoachHistory" ADD CONSTRAINT "CoachHistory_coachId_fkey" FOREIGN KEY ("coachId") REFERENCES "Coach"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CoachHistory" ADD CONSTRAINT "CoachHistory_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CoachSeason" ADD CONSTRAINT "CoachSeason_coachId_fkey" FOREIGN KEY ("coachId") REFERENCES "Coach"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CoachSeason" ADD CONSTRAINT "CoachSeason_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TeamSeason" ADD CONSTRAINT "TeamSeason_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TeamSeason" ADD CONSTRAINT "TeamSeason_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Game" ADD CONSTRAINT "Game_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Game" ADD CONSTRAINT "Game_homeTeamId_fkey" FOREIGN KEY ("homeTeamId") REFERENCES "Team"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Game" ADD CONSTRAINT "Game_awayTeamId_fkey" FOREIGN KEY ("awayTeamId") REFERENCES "Team"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GameDrive" ADD CONSTRAINT "GameDrive_gameId_fkey" FOREIGN KEY ("gameId") REFERENCES "Game"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PlayerGameStat" ADD CONSTRAINT "PlayerGameStat_gameId_fkey" FOREIGN KEY ("gameId") REFERENCES "Game"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PlayerGameStat" ADD CONSTRAINT "PlayerGameStat_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PlayerSeasonStat" ADD CONSTRAINT "PlayerSeasonStat_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PlayerSeasonStat" ADD CONSTRAINT "PlayerSeasonStat_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SpotlightPlayer" ADD CONSTRAINT "SpotlightPlayer_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SpotlightPlayer" ADD CONSTRAINT "SpotlightPlayer_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TeamRanking" ADD CONSTRAINT "TeamRanking_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PlayerAward" ADD CONSTRAINT "PlayerAward_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NewsItem" ADD CONSTRAINT "NewsItem_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NewsItem" ADD CONSTRAINT "NewsItem_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UserDynasty" ADD CONSTRAINT "UserDynasty_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
