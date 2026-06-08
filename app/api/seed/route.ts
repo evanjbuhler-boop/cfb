@@ -134,9 +134,8 @@ function generateRecruit(nationalRank: number, enrollYear: number) {
   };
 }
 
-export async function POST() {
+export async function GET() {
   try {
-    // Clear in dependency order
     await prisma.newsItem.deleteMany();
     await prisma.spotlightPlayer.deleteMany();
     await prisma.playerDevEvent.deleteMany();
@@ -163,46 +162,58 @@ export async function POST() {
     await prisma.conference.deleteMany();
   } catch { /* ignore */ }
 
-  // Conferences
-  const confMap = new Map<string,string>();
-  for (const c of CONFERENCES) {
-    const conf = await prisma.conference.create({ data: c });
-    confMap.set(c.abbreviation, conf.id);
-  }
-
-  // Teams + rosters
   const YEARS = ["FR","FR","SO","SO","JR","JR","SR","SR","GR"];
   const SCHEMES = ["PRO_STYLE","SPREAD","AIR_RAID","RPO","POWER_RUN"];
   const DEF_SCHEMES = ["FOUR_THREE","THREE_FOUR","NICKEL","COVER_THREE"];
   const PERSONALITIES = ["DISCIPLINARIAN","PLAYER_FRIENDLY","TACTICIAN","RECRUITER","DEVELOPER","MOTIVATOR"];
+  const ROSTER_DEF: [number, string][] = [[2,"QB"],[3,"RB"],[5,"WR"],[2,"TE"],[5,"OL"],[4,"DL"],[4,"LB"],[4,"CB"],[3,"S"]];
 
+  // Conferences (bulk)
+  await prisma.conference.createMany({ data: CONFERENCES });
+  const confs = await prisma.conference.findMany();
+  const confMap = new Map(confs.map(c => [c.abbreviation, c.id]));
+
+  // Teams (bulk)
+  await prisma.team.createMany({
+    data: TEAMS_DATA.map(t => ({
+      name: t.name, abbreviation: t.abbr, mascot: t.mascot,
+      city: t.city, state: t.state, conferenceId: confMap.get(t.conf)!,
+      prestige: t.prestige, facilityRating: t.fac, academicRating: t.acad,
+      recruitingBudget: t.budget, stadiumCapacity: t.stadium,
+      primaryColor: t.primary, secondaryColor: t.secondary,
+    })),
+  });
+  const teams = await prisma.team.findMany();
+  const teamMap = new Map(teams.map(t => [t.abbreviation, t]));
+
+  // Players + traits per team (bulk per team)
+  const allTraits: { playerId: string; trait: string }[] = [];
   for (const t of TEAMS_DATA) {
-    const confId = confMap.get(t.conf);
-    if (!confId) continue;
+    const team = teamMap.get(t.abbr);
+    if (!team) continue;
 
-    const team = await prisma.team.create({
-      data: {
-        name: t.name, abbreviation: t.abbr, mascot: t.mascot,
-        city: t.city, state: t.state, conferenceId: confId,
-        prestige: t.prestige, facilityRating: t.fac, academicRating: t.acad,
-        recruitingBudget: t.budget, stadiumCapacity: t.stadium,
-        primaryColor: t.primary, secondaryColor: t.secondary,
-      },
-    });
+    const positions: string[] = [];
+    ROSTER_DEF.forEach(([n, p]) => { for (let i=0;i<n;i++) positions.push(p); });
 
-    // Roster positions
-    const rosterPos: string[] = [];
-    const rosterDef: [number, string][] = [[2,"QB"],[3,"RB"],[5,"WR"],[2,"TE"],[5,"OL"],[4,"DL"],[4,"LB"],[4,"CB"],[3,"S"]];
-    rosterDef.forEach(([n, p]) => {
-      for (let i=0;i<n;i++) rosterPos.push(p);
-    });
-
-    for (const pos of rosterPos) {
+    const playerRows = positions.map(pos => {
       const pData = generatePlayer(pos, YEARS[rng(0,YEARS.length-1)], t.prestige);
-      const { trait, ...playerData } = pData;
-      const player = await prisma.player.create({ data: { ...playerData, teamId: team.id } });
-      if (trait) await prisma.playerTrait.create({ data: { playerId: player.id, trait } });
-    }
+      const { trait: _t, ...playerData } = pData;
+      return { ...playerData, teamId: team.id, _trait: _t };
+    });
+
+    await prisma.player.createMany({
+      data: playerRows.map(({ _trait: _unused, ...p }) => p),
+    });
+
+    // Fetch back the players we just created to get their IDs for traits
+    const created = await prisma.player.findMany({
+      where: { teamId: team.id },
+      orderBy: { createdAt: "asc" },
+    });
+    created.forEach((p, i) => {
+      const trait = playerRows[i]?._trait;
+      if (trait) allTraits.push({ playerId: p.id, trait });
+    });
 
     // Head coach
     const cn = randName();
@@ -226,10 +237,13 @@ export async function POST() {
     });
   }
 
-  // Recruiting class
-  for (let rank=1; rank<=600; rank++) {
-    await prisma.recruit.create({ data: generateRecruit(rank, 2026) });
-  }
+  // Bulk traits
+  if (allTraits.length) await prisma.playerTrait.createMany({ data: allTraits });
 
-  return NextResponse.json({ success: true, teams: TEAMS_DATA.length });
+  // Recruiting class (bulk in one shot)
+  await prisma.recruit.createMany({
+    data: Array.from({ length: 600 }, (_, i) => generateRecruit(i + 1, 2026)),
+  });
+
+  return NextResponse.json({ success: true, teams: TEAMS_DATA.length, recruits: 600 });
 }
