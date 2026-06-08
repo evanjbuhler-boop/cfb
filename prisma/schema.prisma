@@ -1,0 +1,574 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Conference {
+  id           String @id @default(cuid())
+  name         String
+  abbreviation String
+  tier         String
+  teams        Team[]
+}
+
+model Team {
+  id               String  @id @default(cuid())
+  name             String
+  abbreviation     String
+  mascot           String
+  city             String
+  state            String
+  conferenceId     String
+  conference       Conference       @relation(fields: [conferenceId], references: [id])
+  prestige         Int
+  facilityRating   Int
+  academicRating   Int
+  recruitingBudget Int
+  stadiumCapacity  Int
+  primaryColor     String
+  secondaryColor   String
+  rivalTeamId      String?
+
+  players          Player[]
+  coaches          Coach[]
+  homeGames        Game[]           @relation("HomeTeam")
+  awayGames        Game[]           @relation("AwayTeam")
+  teamSeasons      TeamSeason[]
+  interests        RecruitingInterest[]
+  offers           ScholarshipOffer[]
+  coachHistories   CoachHistory[]
+  userTeam         UserDynasty?
+
+  createdAt        DateTime @default(now())
+}
+
+model Player {
+  id             String     @id @default(cuid())
+  teamId         String?
+  team           Team?      @relation(fields: [teamId], references: [id])
+
+  firstName      String
+  lastName       String
+  position       String
+  year           String
+  jerseyNumber   Int?
+  hometown       String
+  homeState      String
+  height         Int
+  weight         Int
+  bio            String?
+
+  recruitStars   Int
+  recruitRank    Int?
+
+  overall        Int
+  speed          Int
+  strength       Int
+  agility        Int
+  awareness      Int
+
+  throwPower     Int?
+  throwAccuracy  Int?
+  throwOnRun     Int?
+  playAction     Int?
+  clutch         Int?
+
+  catching       Int?
+  routeRunning   Int?
+  separation     Int?
+  ballCarrying   Int?
+  breakTackle    Int?
+  trucking       Int?
+  elusiveness    Int?
+  yacAbility     Int?
+
+  runBlocking    Int?
+  passBlocking   Int?
+  footwork       Int?
+
+  tackling       Int?
+  pursuit        Int?
+  blockShedding  Int?
+  finesseMoves   Int?
+  powerMoves     Int?
+  coverage       Int?
+  manCoverage    Int?
+  zoneCoverage   Int?
+  pressureSense  Int?
+  playRecognition Int?
+  hitPower       Int?
+
+  kickPower      Int?
+  kickAccuracy   Int?
+
+  potential      Int
+  devTrait       String     @default("NORMAL")
+  devProgress    Int        @default(0)
+
+  morale         Int        @default(80)
+  leadership     Int        @default(50)
+  character      Int        @default(75)
+
+  redshirted     Boolean    @default(false)
+  redshirtYear   Int?
+  inTransferPortal Boolean  @default(false)
+  declaringDraft Boolean    @default(false)
+  injured        Boolean    @default(false)
+  injuryWeeks    Int        @default(0)
+
+  traits         PlayerTrait[]
+  gameStats      PlayerGameStat[]
+  seasonStats    PlayerSeasonStat[]
+  awards         PlayerAward[]
+  spotlights     SpotlightPlayer[]
+  devEvents      PlayerDevEvent[]
+  newsItems      NewsItem[]
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model PlayerTrait {
+  id       String @id @default(cuid())
+  playerId String
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  trait    String
+  addedBy  String @default("SYSTEM")
+
+  @@unique([playerId, trait])
+}
+
+model PlayerDevEvent {
+  id           String   @id @default(cuid())
+  playerId     String
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  seasonId     String
+  week         Int
+  title        String
+  description  String
+  ratingBefore Int
+  ratingAfter  Int
+  attribute    String
+
+  createdAt    DateTime @default(now())
+}
+
+model Recruit {
+  id               String  @id @default(cuid())
+
+  firstName        String
+  lastName         String
+  position         String
+  hometown         String
+  homeState        String
+  height           Int
+  weight           Int
+
+  stars            Int
+  nationalRank     Int
+  positionRank     Int
+  stateRank        Int
+
+  gpa              Float
+  academicRating   Int
+
+  speedRating      Int
+  athleticismScore Int
+  overallRating    Int
+  potential        Int
+
+  loyaltyFactor       Int
+  homesickness        Int
+  prestigeDriven      Int
+  playingTimeDriven   Int
+  academicDriven      Int
+  familyInfluence     Int
+  coachRelationship   Int
+  cityKidFactor       Int
+  championshipDriven  Int
+
+  devTrait         String  @default("NORMAL")
+  scoutingData     String  @default("{}")
+
+  status           String  @default("UNCOMMITTED")
+  committedTeamId  String?
+  committedTeamName String?
+  earlyEnrollee    Boolean @default(false)
+  enrollYear       Int
+
+  offers           ScholarshipOffer[]
+  interests        RecruitingInterest[]
+  visits           RecruitVisit[]
+  timeline         RecruitTimeline[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model ScholarshipOffer {
+  id        String   @id @default(cuid())
+  recruitId String
+  teamId    String
+  recruit   Recruit  @relation(fields: [recruitId], references: [id], onDelete: Cascade)
+  team      Team     @relation(fields: [teamId], references: [id])
+  offeredAt DateTime @default(now())
+  withdrawn Boolean  @default(false)
+
+  @@unique([recruitId, teamId])
+}
+
+model RecruitingInterest {
+  id               String   @id @default(cuid())
+  recruitId        String
+  teamId           String
+  recruit          Recruit  @relation(fields: [recruitId], references: [id], onDelete: Cascade)
+  team             Team     @relation(fields: [teamId], references: [id])
+
+  interestLevel    Int      @default(0)
+  pointsInvested   Int      @default(0)
+  pipelineStrength Int      @default(0)
+  hasVisited       Boolean  @default(false)
+  visitType        String?
+  visitImpact      Int      @default(0)
+
+  updatedAt        DateTime @updatedAt
+
+  @@unique([recruitId, teamId])
+}
+
+model RecruitVisit {
+  id          String   @id @default(cuid())
+  recruitId   String
+  teamId      String
+  recruit     Recruit  @relation(fields: [recruitId], references: [id], onDelete: Cascade)
+  visitType   String
+  visitDate   DateTime
+  impactScore Int
+
+  createdAt   DateTime @default(now())
+}
+
+model RecruitTimeline {
+  id         String   @id @default(cuid())
+  recruitId  String
+  recruit    Recruit  @relation(fields: [recruitId], references: [id], onDelete: Cascade)
+  event      String
+  teamId     String?
+  teamName   String?
+  week       Int
+  season     Int
+
+  occurredAt DateTime @default(now())
+}
+
+model Coach {
+  id               String  @id @default(cuid())
+  teamId           String?
+  team             Team?   @relation(fields: [teamId], references: [id])
+
+  firstName        String
+  lastName         String
+  role             String
+  age              Int
+
+  offenseRating    Int
+  defenseRating    Int
+  recruitingRating Int
+  playerDev        Int
+  gameManagement   Int
+  motivation       Int
+  discipline       Int
+
+  offScheme        String?
+  defScheme        String?
+
+  careerWins       Int     @default(0)
+  careerLosses     Int     @default(0)
+  hotSeat          Int     @default(0)
+  reputation       Int
+  contractYears    Int     @default(3)
+  salary           Int
+
+  personality      String
+  quote            String?
+
+  coachSeasons     CoachSeason[]
+  history          CoachHistory[]
+
+  createdAt        DateTime @default(now())
+}
+
+model CoachHistory {
+  id       String   @id @default(cuid())
+  coachId  String
+  teamId   String
+  coach    Coach    @relation(fields: [coachId], references: [id])
+  team     Team     @relation(fields: [teamId], references: [id])
+  role     String
+  fromYear Int
+  toYear   Int?
+  wins     Int      @default(0)
+  losses   Int      @default(0)
+  reason   String?
+}
+
+model CoachSeason {
+  id       String @id @default(cuid())
+  coachId  String
+  seasonId String
+  coach    Coach  @relation(fields: [coachId], references: [id])
+  season   Season @relation(fields: [seasonId], references: [id])
+  wins     Int    @default(0)
+  losses   Int    @default(0)
+
+  @@unique([coachId, seasonId])
+}
+
+model Season {
+  id          String  @id @default(cuid())
+  year        Int     @unique
+  currentWeek Int     @default(0)
+  phase       String  @default("PRESEASON")
+
+  games            Game[]
+  teamSeasons      TeamSeason[]
+  playerSeasonStats PlayerSeasonStat[]
+  spotlightPlayers SpotlightPlayer[]
+  newsItems        NewsItem[]
+  coachSeasons     CoachSeason[]
+  rankings         TeamRanking[]
+}
+
+model TeamSeason {
+  id         String  @id @default(cuid())
+  teamId     String
+  seasonId   String
+  team       Team    @relation(fields: [teamId], references: [id])
+  season     Season  @relation(fields: [seasonId], references: [id])
+
+  wins       Int     @default(0)
+  losses     Int     @default(0)
+  confWins   Int     @default(0)
+  confLosses Int     @default(0)
+  apRank     Int?
+  cfpRank    Int?
+
+  recruitingClassRank Int?
+  signingDayComplete  Boolean @default(false)
+
+  @@unique([teamId, seasonId])
+}
+
+model Game {
+  id             String   @id @default(cuid())
+  seasonId       String
+  season         Season   @relation(fields: [seasonId], references: [id])
+  homeTeamId     String
+  awayTeamId     String
+  homeTeam       Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam       Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
+
+  week           Int
+  gameType       String   @default("REGULAR_SEASON")
+  neutralSite    Boolean  @default(false)
+
+  simulated      Boolean  @default(false)
+  homeScore      Int?
+  awayScore      Int?
+  overtime       Boolean  @default(false)
+
+  motivationChoice  String?
+  motivationBoosts  String?
+  spotlightIds      String?
+
+  headline       String?
+  gameNarrative  String?
+  mvpPlayerId    String?
+
+  drives         GameDrive[]
+  playerStats    PlayerGameStat[]
+
+  createdAt      DateTime @default(now())
+}
+
+model GameDrive {
+  id           String  @id @default(cuid())
+  gameId       String
+  game         Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  driveNumber  Int
+  offTeamId    String
+
+  startYardLine Int
+  endYardLine   Int
+  plays         Int
+  yards         Int
+  result        String
+
+  timeElapsed   Int
+  quarter       Int
+  timeStart     Int
+
+  keyPlayerId   String?
+  narrative     String?
+}
+
+model PlayerGameStat {
+  id       String @id @default(cuid())
+  gameId   String
+  playerId String
+  teamId   String
+  game     Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player   Player @relation(fields: [playerId], references: [id])
+
+  passAttempts    Int   @default(0)
+  passCompletions Int   @default(0)
+  passYards       Int   @default(0)
+  passTDs         Int   @default(0)
+  interceptions   Int   @default(0)
+  qbRating        Float @default(0)
+  sacked          Int   @default(0)
+  sackedYards     Int   @default(0)
+
+  rushAttempts    Int   @default(0)
+  rushYards       Int   @default(0)
+  rushTDs         Int   @default(0)
+  yardsAfterContact Int @default(0)
+  brokenTackles   Int   @default(0)
+  longRush        Int   @default(0)
+
+  targets         Int   @default(0)
+  receptions      Int   @default(0)
+  recYards        Int   @default(0)
+  recTDs          Int   @default(0)
+  yac             Int   @default(0)
+  drops           Int   @default(0)
+  longRec         Int   @default(0)
+
+  tackles         Int   @default(0)
+  soloTackles     Int   @default(0)
+  tacklesForLoss  Float @default(0)
+  sacks           Float @default(0)
+  forcedFumbles   Int   @default(0)
+  defInterceptions Int  @default(0)
+  passBreakups    Int   @default(0)
+  qbHurries       Int   @default(0)
+
+  kickReturnYards Int   @default(0)
+  kickReturnTDs   Int   @default(0)
+  puntReturnYards Int   @default(0)
+  puntReturnTDs   Int   @default(0)
+  fgMade          Int   @default(0)
+  fgAttempts      Int   @default(0)
+
+  playerOfGame    Boolean @default(false)
+  spotlightGame   Boolean @default(false)
+
+  @@unique([gameId, playerId])
+}
+
+model PlayerSeasonStat {
+  id          String @id @default(cuid())
+  playerId    String
+  seasonId    String
+  teamId      String
+  player      Player @relation(fields: [playerId], references: [id])
+  season      Season @relation(fields: [seasonId], references: [id])
+
+  gamesPlayed     Int   @default(0)
+
+  passAttempts    Int   @default(0)
+  passCompletions Int   @default(0)
+  passYards       Int   @default(0)
+  passTDs         Int   @default(0)
+  interceptions   Int   @default(0)
+  qbRating        Float @default(0)
+
+  rushAttempts    Int   @default(0)
+  rushYards       Int   @default(0)
+  rushTDs         Int   @default(0)
+
+  targets         Int   @default(0)
+  receptions      Int   @default(0)
+  recYards        Int   @default(0)
+  recTDs          Int   @default(0)
+
+  tackles         Int   @default(0)
+  sacks           Float @default(0)
+  forcedFumbles   Int   @default(0)
+  defInterceptions Int  @default(0)
+  passBreakups    Int   @default(0)
+
+  @@unique([playerId, seasonId])
+}
+
+model SpotlightPlayer {
+  id            String  @id @default(cuid())
+  seasonId      String
+  playerId      String
+  teamId        String
+  season        Season  @relation(fields: [seasonId], references: [id])
+  player        Player  @relation(fields: [playerId], references: [id])
+  narrative     String?
+  assignedTrait String?
+
+  @@unique([seasonId, playerId])
+}
+
+model TeamRanking {
+  id       String @id @default(cuid())
+  seasonId String
+  teamId   String
+  season   Season @relation(fields: [seasonId], references: [id])
+  week     Int
+  apRank   Int?
+  cfpRank  Int?
+  record   String
+
+  @@unique([seasonId, teamId, week])
+}
+
+model PlayerAward {
+  id       String @id @default(cuid())
+  playerId String
+  seasonId String
+  player   Player @relation(fields: [playerId], references: [id])
+  name     String
+  week     Int?
+  gameId   String?
+}
+
+model NewsItem {
+  id         String   @id @default(cuid())
+  seasonId   String
+  season     Season   @relation(fields: [seasonId], references: [id])
+  teamId     String?
+  week       Int
+  category   String
+  headline   String
+  body       String
+  playerId   String?
+  player     Player?  @relation(fields: [playerId], references: [id])
+  gameId     String?
+  isBreaking Boolean  @default(false)
+  isNational Boolean  @default(false)
+
+  createdAt  DateTime @default(now())
+}
+
+model UserDynasty {
+  id           String   @id @default(cuid())
+  teamId       String   @unique
+  team         Team     @relation(fields: [teamId], references: [id])
+  dynastyName  String
+  currentYear  Int
+  currentWeek  Int      @default(0)
+  totalWins    Int      @default(0)
+  totalLosses  Int      @default(0)
+  titles       Int      @default(0)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
