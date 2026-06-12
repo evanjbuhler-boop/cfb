@@ -222,3 +222,5 @@ export async function GET() {
 
   return NextResponse.json({ success: true, teams: TEAMS_DATA.length, players: allPlayers.length, recruits: 600 });
 }
+
+export const POST = GET;
