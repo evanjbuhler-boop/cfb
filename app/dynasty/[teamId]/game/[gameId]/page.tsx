@@ -104,6 +104,7 @@ export default function GameWeekPage() {
   const [phase, setPhase] = useState<"LOCKER_ROOM" | "SIMULATING" | "RESULT">("LOCKER_ROOM");
   const [chosen, setChosen] = useState<MotivationOption | null>(null);
   const [simResult, setSimResult] = useState<{ won: boolean; homeScore: number; awayScore: number; headline: string; narrative: string } | null>(null);
+  const [advancing, setAdvancing] = useState(false);
 
   useEffect(() => {
     fetch(`/api/dynasty/${teamId}/game/${gameId}`)
@@ -115,6 +116,20 @@ export default function GameWeekPage() {
         }
       }).catch(console.error);
   }, [teamId, gameId]);
+
+  async function advanceWeek() {
+    setAdvancing(true);
+    try {
+      const res = await fetch(`/api/dynasty/${teamId}/advance`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        if (data.gameId) router.push(`/dynasty/${teamId}/game/${data.gameId}`);
+        else router.push(`/dynasty/${teamId}`);
+      }
+    } finally {
+      setAdvancing(false);
+    }
+  }
 
   async function simulate(option: MotivationOption) {
     setChosen(option);
@@ -338,14 +353,24 @@ export default function GameWeekPage() {
               <Link
                 href={`/dynasty/${teamId}`}
                 className="font-display text-lg px-8 py-3 tracking-widest transition-all bracket-corners"
+                style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
+              >
+                ← DYNASTY
+              </Link>
+              <button
+                onClick={advanceWeek}
+                disabled={advancing}
+                className="font-display text-lg px-8 py-3 tracking-widest transition-all bracket-corners"
                 style={{
-                  background: `${userTeam.primaryColor}20`,
-                  border: `1px solid ${userTeam.primaryColor}`,
-                  color: userTeam.primaryColor,
+                  background: advancing ? "var(--bg-elevated)" : `linear-gradient(135deg, ${userTeam.primaryColor}40, ${userTeam.primaryColor}20)`,
+                  border: `1px solid ${advancing ? "var(--border)" : userTeam.primaryColor}`,
+                  color: advancing ? "var(--text-dim)" : userTeam.primaryColor,
+                  cursor: advancing ? "wait" : "pointer",
+                  boxShadow: advancing ? "" : `0 0 20px ${userTeam.primaryColor}30`,
                 }}
               >
-                BACK TO DYNASTY
-              </Link>
+                {advancing ? "ADVANCING..." : "NEXT WEEK →"}
+              </button>
             </div>
           </div>
         )}

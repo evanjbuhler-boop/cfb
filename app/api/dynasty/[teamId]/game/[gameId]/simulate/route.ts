@@ -89,10 +89,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ teamId:
       },
     });
 
-    // Persist drives
-    for (const drive of result.drives) {
-      await prisma.gameDrive.create({
-        data: {
+    // Persist drives (bulk)
+    if (result.drives.length > 0) {
+      await prisma.gameDrive.createMany({
+        data: result.drives.map((drive) => ({
           gameId,
           driveNumber: drive.driveNumber,
           offTeamId: drive.offTeamId,
@@ -106,55 +106,55 @@ export async function POST(req: Request, { params }: { params: Promise<{ teamId:
           timeStart: drive.timeStart,
           keyPlayerId: drive.keyPlayerId,
           narrative: drive.narrative,
-        },
+        })),
       });
     }
 
-    // Persist player stats
-    for (const [, statLine] of result.playerStats) {
-      await prisma.playerGameStat.create({
-        data: {
-          gameId,
-          playerId: statLine.playerId,
-          teamId: statLine.teamId,
-          passAttempts: statLine.passAttempts,
-          passCompletions: statLine.passCompletions,
-          passYards: statLine.passYards,
-          passTDs: statLine.passTDs,
-          interceptions: statLine.interceptions,
-          rushAttempts: statLine.rushAttempts,
-          rushYards: statLine.rushYards,
-          rushTDs: statLine.rushTDs,
-          targets: statLine.targets,
-          receptions: statLine.receptions,
-          recYards: statLine.recYards,
-          recTDs: statLine.recTDs,
-          tackles: statLine.tackles,
-          sacks: statLine.sacks,
-          defInterceptions: statLine.defInterceptions,
-          passBreakups: statLine.passBreakups,
-          forcedFumbles: statLine.forcedFumbles,
-          playerOfGame: statLine.playerOfGame,
-        },
-      });
+    // Persist player stats (bulk)
+    const statRows = Array.from(result.playerStats.values()).map((statLine) => ({
+      gameId,
+      playerId: statLine.playerId,
+      teamId: statLine.teamId,
+      passAttempts: statLine.passAttempts,
+      passCompletions: statLine.passCompletions,
+      passYards: statLine.passYards,
+      passTDs: statLine.passTDs,
+      interceptions: statLine.interceptions,
+      rushAttempts: statLine.rushAttempts,
+      rushYards: statLine.rushYards,
+      rushTDs: statLine.rushTDs,
+      targets: statLine.targets,
+      receptions: statLine.receptions,
+      recYards: statLine.recYards,
+      recTDs: statLine.recTDs,
+      tackles: statLine.tackles,
+      sacks: statLine.sacks,
+      defInterceptions: statLine.defInterceptions,
+      passBreakups: statLine.passBreakups,
+      forcedFumbles: statLine.forcedFumbles,
+      playerOfGame: statLine.playerOfGame,
+    }));
+    if (statRows.length > 0) {
+      await prisma.playerGameStat.createMany({ data: statRows });
     }
 
-    // Update team season records
+    // Update team season records (user + opponent)
     const userWon = isHome ? result.homeScore > result.awayScore : result.awayScore > result.homeScore;
+    const opponentId = isHome ? safeGame.awayTeamId : safeGame.homeTeamId;
     const dynasty = await prisma.userDynasty.findUnique({ where: { teamId } });
     if (dynasty) {
       const season = await prisma.season.findUnique({ where: { year: dynasty.currentYear } });
       if (season) {
-        const ts = await prisma.teamSeason.findUnique({ where: { teamId_seasonId: { teamId, seasonId: season.id } } });
-        if (ts) {
-          await prisma.teamSeason.update({
-            where: { teamId_seasonId: { teamId, seasonId: season.id } },
-            data: {
-              wins: { increment: userWon ? 1 : 0 },
-              losses: { increment: userWon ? 0 : 1 },
-            },
-          });
-        }
+        await prisma.teamSeason.upsert({
+          where: { teamId_seasonId: { teamId, seasonId: season.id } },
+          update: { wins: { increment: userWon ? 1 : 0 }, losses: { increment: userWon ? 0 : 1 } },
+          create: { teamId, seasonId: season.id, wins: userWon ? 1 : 0, losses: userWon ? 0 : 1 },
+        });
+        await prisma.teamSeason.upsert({
+          where: { teamId_seasonId: { teamId: opponentId, seasonId: season.id } },
+          update: { wins: { increment: userWon ? 0 : 1 }, losses: { increment: userWon ? 1 : 0 } },
+          create: { teamId: opponentId, seasonId: season.id, wins: userWon ? 0 : 1, losses: userWon ? 1 : 0 },
+        });
 
         // Generate news
         const mvpPlayer = result.mvpPlayerId
