@@ -1,5 +1,7 @@
 export const dynamic = "force-dynamic";
+import { seedDatabase } from "@/lib/seed-db";
 
-export function GET() {
+export async function GET() {
+  await seedDatabase();
   return Response.json({ ok: true });
 }
