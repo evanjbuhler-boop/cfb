@@ -33,7 +33,18 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/teams").then((r) => r.json()).then((d) => { if (Array.isArray(d)) setTeams(d); }).catch(() => {});
+    fetch("/api/teams").then((r) => r.json()).then((d) => {
+      if (Array.isArray(d)) {
+        setTeams(d);
+        // Auto-seed if DB is empty or has a partial/stale seed (< 10 teams)
+        if (d.length < 10) {
+          setSeeding(true);
+          fetch("/api/seed").then(() => fetch("/api/teams")).then((r) => r.json()).then((d2) => {
+            if (Array.isArray(d2)) setTeams(d2);
+          }).catch(() => {}).finally(() => setSeeding(false));
+        }
+      }
+    }).catch(() => {});
   }, []);
 
   async function initWorld() {
@@ -95,7 +106,7 @@ export default function LandingPage() {
           {TAGLINES[tagline]}
         </div>
 
-        {teams.length === 0 ? (
+        {teams.length < 10 ? (
           <div className="text-center animate-slide-in-up">
             <div className="font-display text-2xl mb-4" style={{ color: "var(--gold)" }}>
               INITIALIZE YOUR WORLD
