@@ -127,6 +127,10 @@ export default function DynastyHub() {
       const res = await fetch(`/api/dynasty/${teamId}/advance`, { method: "POST" });
       const data = await res.json();
       if (data.success) {
+        if (data.seasonEnd) {
+          router.push(`/dynasty/${teamId}/season-end`);
+          return;
+        }
         // Refresh
         const [d, n, s] = await Promise.all([
           fetch(`/api/dynasty/${teamId}`).then((r) => r.json()),

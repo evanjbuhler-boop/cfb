@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { generateGameNews, generateRankingsNews, generateInjuryNews, generateDevEventNews } from "@/lib/engine/news-generator";
-import { rng } from "@/lib/utils";
+import { rng, clamp } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Quick CPU game simulation (no DB needed, prestige-based)
@@ -326,6 +326,39 @@ export async function POST(
       }
     }
 
+    // --- Recruiting commits ---
+    const offeredRecruits = await prisma.scholarshipOffer.findMany({
+      where: { teamId, withdrawn: false },
+      include: { recruit: true },
+    });
+    const userTeamForRecruit = userTeamData;
+    const teamPrestige = userTeamForRecruit?.prestige ?? 5;
+
+    for (const offer of offeredRecruits) {
+      const r = offer.recruit;
+      if (r.status !== "UNCOMMITTED") continue;
+      // Commit probability: base 12% per week, adjusted by prestige fit
+      const prestigeFit = clamp(teamPrestige - r.stars + 5, 1, 10) / 10;
+      const commitChance = 0.12 * prestigeFit;
+      if (Math.random() < commitChance) {
+        await prisma.recruit.update({
+          where: { id: r.id },
+          data: { status: "COMMITTED", committedTeamId: teamId, committedTeamName: userTeamForRecruit?.name },
+        });
+        const recruitName = `${r.firstName} ${r.lastName}`;
+        newsItemsToCreate.push({
+          seasonId: season.id,
+          teamId,
+          week: newWeek,
+          category: "RECRUITING",
+          headline: `${r.stars}★ ${r.position} ${recruitName.toUpperCase()} COMMITS TO ${teamName.toUpperCase()}!`,
+          body: `${recruitName}, a ${r.stars}-star ${r.position} out of ${r.hometown}, ${r.homeState}, has officially committed to the program. The #${r.nationalRank} overall recruit chose ${teamName} over multiple Power 4 offers.`,
+          isBreaking: r.stars >= 4,
+          isNational: r.stars >= 5,
+        });
+      }
+    }
+
     // Bulk-insert all news items
     if (newsItemsToCreate.length > 0) {
       await prisma.newsItem.createMany({ data: newsItemsToCreate });
@@ -335,6 +368,18 @@ export async function POST(
     // 5. Advance week
     // ------------------------------------------------------------------
     await prisma.userDynasty.update({ where: { teamId }, data: { currentWeek: newWeek } });
+
+    // Check if all user games this season are now simulated
+    const remainingGames = await prisma.game.count({
+      where: {
+        seasonId: season.id,
+        simulated: false,
+        OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
+      },
+    });
+    if (remainingGames === 0 && newWeek > 5) {
+      return NextResponse.json({ success: true, week: newWeek, seasonEnd: true });
+    }
 
     return NextResponse.json({ success: true, week: newWeek, gameId: null });
   } catch (err) {

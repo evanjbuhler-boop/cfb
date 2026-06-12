@@ -123,7 +123,8 @@ export default function GameWeekPage() {
       const res = await fetch(`/api/dynasty/${teamId}/advance`, { method: "POST" });
       const data = await res.json();
       if (data.success) {
-        if (data.gameId) router.push(`/dynasty/${teamId}/game/${data.gameId}`);
+        if (data.seasonEnd) router.push(`/dynasty/${teamId}/season-end`);
+        else if (data.gameId) router.push(`/dynasty/${teamId}/game/${data.gameId}`);
         else router.push(`/dynasty/${teamId}`);
       }
     } finally {
